@@ -7,3 +7,6 @@ commands:
     permission: ballog.user
   ballogop:
     permission: ballog.op
+
+depend:
+  - EssentialsX
