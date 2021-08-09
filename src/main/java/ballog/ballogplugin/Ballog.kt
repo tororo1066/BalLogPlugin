@@ -1,6 +1,8 @@
 package ballog.ballogplugin
 
 import net.ess3.api.events.UserBalanceUpdateEvent
+import net.kyori.adventure.text.Component.text
+import net.kyori.adventure.text.event.ClickEvent
 import org.bukkit.Bukkit
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
@@ -23,12 +25,14 @@ class Ballog : JavaPlugin(), Listener {
     lateinit var mysql : MySQLManager
 
     private val commandmap = HashMap<String,Pair<String,String>>()
-    private val date = SimpleDateFormat("yyyy-MM-dd-kk-mm-ss")
+    private val date = SimpleDateFormat("yyyy-MM-dd kk:mm:ss")
     private val prefix = "§f[§e§lBalLog§f]§r"
+    private var balanceupdatewait = 0
 
     override fun onEnable() {
         plugin = this
         saveDefaultConfig()
+        balanceupdatewait = config.getInt("balanceupdatewait")
         es = Executors.newCachedThreadPool()
         mysql = MySQLManager(this,"bal_log")
         server.pluginManager.registerEvents(this,this)
@@ -50,8 +54,17 @@ class Ballog : JavaPlugin(), Listener {
                 val list = getLog(sender.uniqueId,page)
                 for (data in list){
                     val tag = if (data.isDeposit) "§a[入金]" else "§c[出金]"
-                    sender.sendmsg("$tag §e${data.dateFormat} §e§l${format(data.amount)}円 §eサーバー ${data.server}\n§e使用コマンド ${data.command}")
+                    sender.sendmsg("$tag §e${data.dateFormat} §e§l${format(data.amount)}円 §eserver §e§l${data.server} §eコマンド ${data.command}")
                 }
+                val previous = if (page!=0) {
+                    text("${prefix}§b§l<<==前のページ ").clickEvent(ClickEvent.runCommand("/ballog ${page-1}"))
+                }else text(prefix)
+
+                val next = if (list.size == 10){
+                    text("§b§l次のページ==>>").clickEvent(ClickEvent.runCommand("/ballog ${page+1}"))
+                }else text("")
+
+                sender.sendMessage(previous.append(next))
             }
 
             "ballogop"->{
@@ -64,8 +77,17 @@ class Ballog : JavaPlugin(), Listener {
                 val list = getLog(p.uniqueId,page)
                 for (data in list){
                     val tag = if (data.isDeposit) "§a[入金]" else "§c[出金]"
-                    sender.sendMessage("$tag §e${data.dateFormat} §e§l${format(data.amount)}円 §eサーバー ${data.server}\n§e使用コマンド ${data.command}")
+                    sender.sendMessage("$tag §e${data.dateFormat} §e§l${format(data.amount)}円 §eserver §e§l${data.server} §eコマンド ${data.command}")
                 }
+                val previous = if (page!=0) {
+                    text("${prefix}§b§l<<==前のページ ").clickEvent(ClickEvent.runCommand("/ballog ${page-1}"))
+                }else text(prefix)
+
+                val next = if (list.size == 10){
+                    text("§b§l次のページ==>>").clickEvent(ClickEvent.runCommand("/ballog ${page+1}"))
+                }else text("")
+
+                sender.sendMessage(previous.append(next))
             }
         }
         return true
@@ -76,14 +98,18 @@ class Ballog : JavaPlugin(), Listener {
     fun balanceupdate(e : UserBalanceUpdateEvent) {
         val cal = Calendar.getInstance()
         cal.time = Date()
-        if (commandmap.containsKey(date.format(cal.time))){
-            if (commandmap[date.format(cal.time)]?.first != e.player.name)return
-            val isdeposit = e.oldBalance.subtract(e.newBalance) >= BigDecimal(0) //trueがdeposit、falseがwithdraw
-            es.execute {
-                mysql.execute("INSERT INTO bal_log (player, uuid, amount, server, deposit, command) VALUES " +
-                        "('${e.player.name}', '${e.player.uniqueId}', '${if (isdeposit) e.oldBalance.subtract(e.newBalance) else e.newBalance.subtract(e.oldBalance)}', '${server.name}', ${if (isdeposit) 1 else 0}, '${commandmap[date.format(cal.time)]?.second}');")
+        for (i in 1..balanceupdatewait){
+            cal.time.seconds = cal.time.seconds-1
+            if (commandmap.containsKey(date.format(cal.time))){
+                if (commandmap[date.format(cal.time)]?.first != e.player.name)return
+                val isdeposit = e.oldBalance.subtract(e.newBalance) >= BigDecimal(0) //trueがdeposit、falseがwithdraw
+                es.execute {
+                    mysql.execute("INSERT INTO bal_log (player, uuid, amount, server, deposit, command) VALUES " +
+                            "('${e.player.name}', '${e.player.uniqueId}', '${if (isdeposit) e.oldBalance.subtract(e.newBalance) else e.newBalance.subtract(e.oldBalance)}', '${server.name}', ${if (isdeposit) 1 else 0}, '${commandmap[date.format(cal.time)]?.second}');")
+                }
             }
         }
+
     }
 
     @EventHandler

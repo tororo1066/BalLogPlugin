@@ -4,3 +4,5 @@ mysql:
   port: 3306
   pass: 1066
   db: ballog
+
+balanceupdatewait: 1
