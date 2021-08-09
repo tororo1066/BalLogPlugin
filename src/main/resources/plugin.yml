@@ -9,4 +9,4 @@ commands:
     permission: ballog.op
 
 depend:
-  - EssentialsX
+  - Essentials

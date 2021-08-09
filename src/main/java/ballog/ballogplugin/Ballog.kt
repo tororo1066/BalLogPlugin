@@ -50,7 +50,7 @@ class Ballog : JavaPlugin(), Listener {
                 val list = getLog(sender.uniqueId,page)
                 for (data in list){
                     val tag = if (data.isDeposit) "§a[入金]" else "§c[出金]"
-                    sender.sendmsg("$tag §e${data.dateFormat} §e§l${format(data.amount)} §eサーバー ${data.server} §e使用コマンド ${data.command}")
+                    sender.sendmsg("$tag §e${data.dateFormat} §e§l${format(data.amount)}円 §eサーバー ${data.server}\n§e使用コマンド ${data.command}")
                 }
             }
 
@@ -64,7 +64,7 @@ class Ballog : JavaPlugin(), Listener {
                 val list = getLog(p.uniqueId,page)
                 for (data in list){
                     val tag = if (data.isDeposit) "§a[入金]" else "§c[出金]"
-                    sender.sendMessage("$tag §e${data.dateFormat} §e§l${format(data.amount)} §eサーバー ${data.server} §e使用コマンド ${data.command}")
+                    sender.sendMessage("$tag §e${data.dateFormat} §e§l${format(data.amount)}円 §eサーバー ${data.server}\n§e使用コマンド ${data.command}")
                 }
             }
         }
