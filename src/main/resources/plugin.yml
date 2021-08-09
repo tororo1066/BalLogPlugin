@@ -1,0 +1,9 @@
+name: BalLogPlugin
+version: 1.0
+main: ballog.ballogplugin.Ballog
+api-version: 1.17
+commands:
+  ballog:
+    permission: ballog.user
+  ballogop:
+    permission: ballog.op
